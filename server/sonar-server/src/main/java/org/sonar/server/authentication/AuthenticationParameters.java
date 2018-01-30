@@ -26,7 +26,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.sonar.api.server.authentication.OAuth2IdentityProvider;
 
 /**
- * This class is used to store some parameters during the authentication process, by using a cookie.
+ * This class is used to store some parameters during the OAuth2 authentication process, by using a cookie.
  * Parameters are read from the request during {@link InitFilter#init(FilterConfig)} and reset when {@link OAuth2IdentityProvider.CallbackContext#redirectToRequestedPage()} is called.
  */
 public interface AuthenticationParameters {
@@ -34,6 +34,8 @@ public interface AuthenticationParameters {
   void init(HttpServletRequest request, HttpServletResponse response);
 
   Optional<String> getReturnTo(HttpServletRequest request);
+
+  Optional<Boolean> getAllowEmailShift(HttpServletRequest request);
 
   void delete(HttpServletRequest request, HttpServletResponse response);
 
