@@ -29,7 +29,6 @@ import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.sonarqube.qa.util.Tester;
@@ -170,30 +169,40 @@ public class OAuth2IdentityProviderTest {
   }
 
   @Test
-  @Ignore("To be activated when /sessions/email_already_exists web page will be implemented")
   public void authenticate_new_user_when_email_already_exists() {
     simulateRedirectionToCallback();
     enablePlugin();
     tester.users().generate(u -> u.setLogin("another").setName("Another").setEmail(USER_EMAIL));
 
-    Selenese.runSelenese(orchestrator, "/user/OAuth2IdentityProviderTest/authenticate_user_when_email_already_exists.html");
+    tester.openBrowser()
+      .logIn()
+      .useOAuth2()
+      .asEmailAlreadyExistsPage()
+      .shouldHaveExistingAccount("another")
+      .shouldHaveNewAccount(USER_LOGIN)
+      .clickContinue();
 
     assertThat(tester.users().getByLogin(USER_LOGIN).get().getEmail()).isEqualTo(USER_EMAIL);
-    assertThat(tester.users().getByLogin("another").get().getEmail()).isNull();
+    assertThat(tester.users().getByLogin("another").get().getEmail()).isNullOrEmpty();
   }
 
   @Test
-  @Ignore("To be activated when /sessions/email_already_exists web page will be implemented")
   public void authenticating_existing_user_using_existing_email() {
     simulateRedirectionToCallback();
     enablePlugin();
     tester.users().generate(u -> u.setLogin(USER_LOGIN).setName(USER_NAME).setEmail(null));
     tester.users().generate(u -> u.setLogin("another").setName("Another").setEmail(USER_EMAIL));
 
-    Selenese.runSelenese(orchestrator, "/user/OAuth2IdentityProviderTest/authenticate_user_when_email_already_exists.html");
+    tester.openBrowser()
+      .logIn()
+      .useOAuth2()
+      .asEmailAlreadyExistsPage()
+      .shouldHaveExistingAccount("another")
+      .shouldHaveNewAccount("john")
+      .clickContinue();
 
     assertThat(tester.users().getByLogin(USER_LOGIN).get().getEmail()).isEqualTo(USER_EMAIL);
-    assertThat(tester.users().getByLogin("another").get().getEmail()).isNull();
+    assertThat(tester.users().getByLogin("another").get().getEmail()).isNullOrEmpty();
   }
 
   @Test
@@ -234,6 +243,10 @@ public class OAuth2IdentityProviderTest {
   }
 
   private void simulateRedirectionToCallback() {
+    fakeServerAuthProvider.enqueue(new MockResponse()
+      .setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP)
+      .addHeader("Location: " + orchestrator.getServer().getUrl() + "/oauth2/callback/" + FAKE_PROVIDER_KEY)
+      .setBody("Redirect to SonarQube"));
     fakeServerAuthProvider.enqueue(new MockResponse()
       .setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP)
       .addHeader("Location: " + orchestrator.getServer().getUrl() + "/oauth2/callback/" + FAKE_PROVIDER_KEY)
